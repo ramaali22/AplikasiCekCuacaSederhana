@@ -3,18 +3,68 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.event.*;
+import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
+import java.awt.Image;
+import javax.imageio.ImageIO;
+import java.net.URL;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import org.json.JSONObject;
 /**
  *
  * @author User
  */
 public class CekCuacaSederhanaForm extends javax.swing.JFrame {
-
+    private DefaultTableModel tableModel; // Model untuk tabel cuaca
+    private HashSet<String> favoriteCities; // Set untuk menyimpan kota favorit
+    private static final String FAVORITES_FILE = "favorite_cities.txt"; // Nama file untuk menyimpan kota favorit
+    private static final String HISTORY_FILE = "weather_history.csv"; // Nama file untuk menyimpan riwayat cuaca
     /**
      * Creates new form CekCuacaSederhanaForm
      */
     public CekCuacaSederhanaForm() {
         initComponents();
+        setupComponents();
+        loadFavoriteCities();
+    } 
+    
+    // Mengatur komponen-komponen UI
+    private void setupComponents() {
+        // Menyiapkan tabel dengan kolom-kolom yang sesuai
+        String[] columns = {"Tanggal", "Kota", "Suhu", "Kondisi", "Kelembaban"};
+            tableModel = new DefaultTableModel(columns, 0); // Membuat model tabel baru
+            jTable1.setModel(tableModel); // Menetapkan model tabel ke jTable1
+
+            // Inisialisasi set untuk kota favorit
+            favoriteCities = new HashSet<>();
+
+            // Menambahkan listener untuk tombol-tombol
+            btnCek.addActionListener(e -> checkWeather()); // Aksi ketika tombol cek cuaca diklik
+            btnSimpan.addActionListener(e -> saveToCSV()); // Aksi ketika tombol simpan diklik
+            btnMuat.addActionListener(e -> loadFromCSV()); // Aksi ketika tombol muat diklik
+
+            // Menambahkan listener untuk ComboBox menggunakan ItemListener
+            jComboBoxLokasi.addItemListener(e -> {
+                if (e.getStateChange() == ItemEvent.SELECTED && jComboBoxLokasi.getSelectedItem() != null) {
+                    checkWeather(); // Memanggil checkWeather saat kota dipilih
+                }
+            });
+        // Tombol untuk menambah kota ke favorit
+        JButton btnAddFavorite = new JButton("Tambah ke Favorit");
+        btnAddFavorite.addActionListener(e -> addToFavorites()); // Aksi ketika tombol tambah ke favorit diklik
+
+        // Memastikan tombol hanya ditambahkan sekali ke layout
+        if (getContentPane().getComponentCount() == 0) {
+            // Menambahkan tombol ke layout hanya jika belum ada
+            this.add(btnAddFavorite);
+        }
     }
 
     /**
@@ -26,22 +76,448 @@ public class CekCuacaSederhanaForm extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jPanel1 = new javax.swing.JPanel();
+        jComboBoxLokasi = new javax.swing.JComboBox<>();
+        btnCek = new javax.swing.JButton();
+        lblInfo = new javax.swing.JLabel();
+        lblIconCuaca = new javax.swing.JLabel();
+        lblKondisiCuaca = new javax.swing.JLabel();
+        lblKelembaban = new javax.swing.JLabel();
+        lblSuhu = new javax.swing.JLabel();
+        lblRiwayat = new javax.swing.JLabel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
+        btnSimpan = new javax.swing.JButton();
+        btnMuat = new javax.swing.JButton();
+        btnAddFavorite = new javax.swing.JButton();
+        jInputKota = new javax.swing.JTextField();
+        jLabel1 = new javax.swing.JLabel();
+        btnKeluar = new javax.swing.JButton();
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Aplikasi Cek Cuaca");
+
+        jComboBoxLokasi.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Jakarta", "Bandung", "Banjarmasin", "Banjarbaru", "Samarinda", "Malang", "Bali", " " }));
+
+        btnCek.setBackground(new java.awt.Color(102, 255, 51));
+        btnCek.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        btnCek.setText("Cek Cuaca");
+        btnCek.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnCekActionPerformed(evt);
+            }
+        });
+
+        lblInfo.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        lblInfo.setText("Informasi Cuaca");
+
+        lblKondisiCuaca.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblKondisiCuaca.setText("Kondisi Cuaca");
+
+        lblKelembaban.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblKelembaban.setText("Kelembaban");
+
+        lblSuhu.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblSuhu.setText("Suhu");
+
+        lblRiwayat.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        lblRiwayat.setText("Riwayat Cuaca");
+
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null}
+            },
+            new String [] {
+                "Tanggal", "Kota", "Suhu", "Kondisi", "Title 5"
+            }
+        ));
+        jScrollPane1.setViewportView(jTable1);
+
+        btnSimpan.setBackground(new java.awt.Color(51, 0, 204));
+        btnSimpan.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        btnSimpan.setText("Simpan Ke CSV");
+        btnSimpan.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSimpanActionPerformed(evt);
+            }
+        });
+
+        btnMuat.setBackground(new java.awt.Color(255, 255, 102));
+        btnMuat.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        btnMuat.setText("Muat dari CSV");
+        btnMuat.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnMuatActionPerformed(evt);
+            }
+        });
+
+        btnAddFavorite.setBackground(new java.awt.Color(255, 0, 51));
+        btnAddFavorite.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        btnAddFavorite.setText("Favorite");
+        btnAddFavorite.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnAddFavoriteActionPerformed(evt);
+            }
+        });
+
+        jLabel1.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        jLabel1.setText("Input Nama Kota");
+
+        btnKeluar.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        btnKeluar.setText("Keluar");
+        btnKeluar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnKeluarActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addComponent(jLabel1)
+                                .addGap(18, 18, 18)
+                                .addComponent(jInputKota, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addComponent(lblKondisiCuaca)
+                                .addGap(54, 54, 54)
+                                .addComponent(lblIconCuaca, javax.swing.GroupLayout.PREFERRED_SIZE, 197, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(lblInfo))
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGap(18, 18, 18)
+                                .addComponent(lblKelembaban))
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGap(18, 18, 18)
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(jPanel1Layout.createSequentialGroup()
+                                        .addComponent(lblSuhu)
+                                        .addGap(0, 0, Short.MAX_VALUE))
+                                    .addGroup(jPanel1Layout.createSequentialGroup()
+                                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                            .addComponent(jComboBoxLokasi, javax.swing.GroupLayout.PREFERRED_SIZE, 245, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                                .addComponent(btnCek)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(btnAddFavorite, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(btnKeluar, javax.swing.GroupLayout.DEFAULT_SIZE, 93, Short.MAX_VALUE))))))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(lblRiwayat))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(205, 205, 205)
+                        .addComponent(btnSimpan)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btnMuat)))
+                .addContainerGap())
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jInputKota)
+                            .addComponent(btnCek, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(btnAddFavorite, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel1))
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGap(51, 51, 51)
+                                .addComponent(lblIconCuaca, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGap(16, 16, 16)
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(jComboBoxLokasi, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(lblInfo))
+                                .addGap(18, 18, 18)
+                                .addComponent(lblSuhu)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(lblKelembaban))))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(btnKeluar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGap(86, 86, 86)
+                        .addComponent(lblKondisiCuaca)))
+                .addGap(50, 50, 50)
+                .addComponent(lblRiwayat)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 157, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btnSimpan, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnMuat, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(62, 62, 62))
+        );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void btnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSimpanActionPerformed
+        saveToCSV();
+    }//GEN-LAST:event_btnSimpanActionPerformed
+
+    private void btnCekActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCekActionPerformed
+        checkWeather();
+    }//GEN-LAST:event_btnCekActionPerformed
+
+    private void btnMuatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnMuatActionPerformed
+        loadFromCSV();
+    }//GEN-LAST:event_btnMuatActionPerformed
+
+    private void btnAddFavoriteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAddFavoriteActionPerformed
+        String city = jInputKota.getText().trim(); // Mendapatkan kota dari input
+        if (!city.isEmpty() && favoriteCities.add(city)) { // Menambahkan kota ke set favorit
+            updateFavoritesComboBox(); // Memperbarui comboBox dengan kota favorit terbaru
+            saveFavoriteCities(); // Menyimpan kota favorit ke file
+            JOptionPane.showMessageDialog(this, "Kota berhasil ditambahkan ke favorit", "Sukses",
+                    JOptionPane.INFORMATION_MESSAGE); // Menampilkan pesan sukses
+        } else {
+            JOptionPane.showMessageDialog(this, "Kota tidak boleh kosong atau sudah ada dalam favorit", "Error",
+                    JOptionPane.ERROR_MESSAGE); // Menampilkan pesan error jika gagal
+        }
+    }//GEN-LAST:event_btnAddFavoriteActionPerformed
+
+    private void btnKeluarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnKeluarActionPerformed
+        int response = JOptionPane.showConfirmDialog(this, 
+        "Apakah Anda yakin ingin keluar?", 
+        "Konfirmasi Keluar", 
+        JOptionPane.YES_NO_OPTION, 
+        JOptionPane.QUESTION_MESSAGE);
+
+        if (response == JOptionPane.YES_OPTION) {
+            System.exit(0); // Menutup aplikasi jika pengguna memilih "Ya"
+        }
+        // Jika pengguna memilih "Tidak", tidak ada tindakan yang diambil, aplikasi tetap berjalan
+    }//GEN-LAST:event_btnKeluarActionPerformed
+     
+    public static class WeatherAPI {
+        private static final String API_KEY = "be4bd2b5b4ef3873b3b83534eba2f7f8"; // API Key OpenWeatherMap
+        private static final String BASE_URL = "http://api.openweathermap.org/data/2.5/weather";
+        
+        public static WeatherData getWeatherData(String city) throws Exception {
+            String urlString = String.format("%s?q=%s&appid=%s&units=metric", BASE_URL, city, API_KEY);
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            // Cek kode status HTTP
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                throw new Exception("Kota tidak ditemukan. Silakan periksa nama kota.");
+            }
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+
+            JSONObject json = new JSONObject(response.toString());
+
+            WeatherData data = new WeatherData();
+            data.setTemperature(json.getJSONObject("main").getDouble("temp"));
+            data.setHumidity(json.getJSONObject("main").getInt("humidity"));
+            data.setCondition(json.getJSONArray("weather").getJSONObject(0).getString("main"));
+            data.setIcon(json.getJSONArray("weather").getJSONObject(0).getString("icon"));
+
+            return data;
+        }
+    }
+    
+    public static class WeatherData {
+        private double temperature;
+        private int humidity;
+        private String condition;
+        private String icon;
+
+        // Getters and setters
+        public double getTemperature() { return temperature; }
+        public void setTemperature(double temperature) { this.temperature = temperature; }
+
+        public int getHumidity() { return humidity; }
+        public void setHumidity(int humidity) { this.humidity = humidity; }
+
+        public String getCondition() { return condition; }
+        public void setCondition(String condition) { this.condition = condition; }
+
+        public String getIcon() { return icon; }
+        public void setIcon(String icon) { this.icon = icon; }
+    }
+    
+    // Method untuk mengecek cuaca berdasarkan kota yang dipilih
+    private void checkWeather() {
+        try {
+            String city = jInputKota.getText().trim(); // Mendapatkan nama kota dari input
+            if (city.isEmpty() && jComboBoxLokasi.getSelectedItem() != null) {
+                city = jComboBoxLokasi.getSelectedItem().toString(); // Jika input kosong, ambil dari ComboBox
+            }
+            if (city.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Silakan masukkan nama kota atau pilih dari favorit", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            WeatherData weather = WeatherAPI.getWeatherData(city); // Mengambil data cuaca dari API
+
+            lblSuhu.setText(String.format("Suhu: %.1f°C", weather.getTemperature())); // Menampilkan suhu
+            lblKelembaban.setText("Kelembaban: " + weather.getHumidity() + "%"); // Menampilkan kelembaban
+            lblKondisiCuaca.setText("Kondisi: " + weather.getCondition()); // Menampilkan kondisi cuaca
+
+            updateWeatherIcon(weather.getIcon()); // Mengupdate ikon cuaca
+            addToHistory(city, weather); // Menambahkan data cuaca ke riwayat
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error mengambil data cuaca: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE); // Menampilkan pesan error jika gagal
+        }
+    }
+    
+    private void updateWeatherIcon(String iconCode) {
+        try {
+            String iconUrl = String.format("http://openweathermap.org/img/w/%s.png", iconCode);
+            URL url = new URL(iconUrl);
+            Image image = ImageIO.read(url);
+            Image scaledImage = image.getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+            lblIconCuaca.setIcon(new ImageIcon(scaledImage));
+        } catch (Exception ex) {
+            lblIconCuaca.setIcon(null);
+            lblIconCuaca.setText("Icon tidak tersedia");
+        }
+    }
+    
+    // Menambahkan data cuaca ke tabel riwayat cuaca
+    private void addToHistory(String city, WeatherData weather) {
+        LocalDateTime now = LocalDateTime.now(); // Mendapatkan waktu saat ini
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"); // Format waktu
+        String[] rowData = {
+            now.format(formatter), // Menambahkan tanggal dan waktu
+            city, // Kota
+            String.format("%.1f°C", weather.getTemperature()), // Suhu
+            weather.getCondition(), // Kondisi cuaca
+            weather.getHumidity() + "%" // Kelembaban
+        };
+        tableModel.addRow(rowData); // Menambahkan baris ke model tabel
+    }
+    
+    // Menambahkan kota ke daftar favorit
+    private void addToFavorites() {
+        String city = jComboBoxLokasi.getSelectedItem().toString(); // Mendapatkan kota yang dipilih
+        if (favoriteCities.add(city)) { // Menambahkan kota ke set favorit
+            updateFavoritesComboBox(); // Memperbarui comboBox dengan kota favorit terbaru
+            saveFavoriteCities(); // Menyimpan kota favorit ke file
+            JOptionPane.showMessageDialog(this, "Kota berhasil ditambahkan ke favorit", "Sukses",
+                    JOptionPane.INFORMATION_MESSAGE); // Menampilkan pesan sukses
+        }
+    }
+    
+    // Memperbarui comboBox dengan kota favorit yang ada
+    private void updateFavoritesComboBox() {
+        jComboBoxLokasi.removeAllItems(); // Menghapus semua item yang ada di comboBox
+        for (String city : favoriteCities) { // Menambahkan kota favorit ke comboBox
+            jComboBoxLokasi.addItem(city);
+        }
+    }
+    
+    // Menyimpan daftar kota favorit ke file
+    private void saveFavoriteCities() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(FAVORITES_FILE))) { // Menulis ke file
+            for (String city : favoriteCities) { // Menyimpan setiap kota favorit
+                writer.println(city);
+            }
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error menyimpan daftar favorit: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE); // Menampilkan pesan error jika gagal menyimpan
+        }
+    }
+
+    // Memuat kota favorit dari file
+    private void loadFavoriteCities() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(FAVORITES_FILE))) { // Membaca dari file
+            String line;
+            while ((line = reader.readLine()) != null) {
+                favoriteCities.add(line.trim()); // Menambahkan kota favorit ke set
+            }
+            updateFavoritesComboBox(); // Memperbarui comboBox dengan kota favorit
+        } catch (IOException ex) {
+            // Jika file tidak ditemukan, biarkan saja (tidak perlu menampilkan error)
+        }
+    }
+
+    // Menyimpan riwayat cuaca ke file CSV
+    private void saveToCSV() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(HISTORY_FILE))) { // Membuka file untuk ditulis
+            // Menulis header
+            for (int i = 0; i < tableModel.getColumnCount(); i++) {
+                writer.print(tableModel.getColumnName(i));
+                writer.print(i < tableModel.getColumnCount() - 1 ? "," : "\n"); // Memisahkan kolom dengan koma
+            }
+
+            // Menulis data dari tabel
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                for (int j = 0; j < tableModel.getColumnCount(); j++) {
+                    writer.print(tableModel.getValueAt(i, j)); // Menulis setiap nilai dalam tabel
+                    writer.print(j < tableModel.getColumnCount() - 1 ? "," : "\n"); // Menulis koma antar kolom
+                }
+            }
+
+            JOptionPane.showMessageDialog(this, "Data berhasil disimpan ke CSV", "Sukses",
+                    JOptionPane.INFORMATION_MESSAGE); // Menampilkan pesan sukses
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error menyimpan ke CSV: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE); // Menampilkan pesan error jika gagal menyimpan
+        }
+    }
+
+    // Memuat riwayat cuaca dari file CSV
+    private void loadFromCSV() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(HISTORY_FILE))) { // Membaca file CSV
+            // Menghapus semua baris yang ada di tabel
+            tableModel.setRowCount(0); // Menghapus semua baris yang ada di tabel
+
+            String line;
+            reader.readLine(); // Membaca header (baris pertama) dan mengabaikannya
+            while ((line = reader.readLine()) != null) {
+                String[] data = line.split(","); // Memisahkan data berdasarkan koma
+                tableModel.addRow(data); // Menambahkan baris baru ke tabel
+            }
+
+            JOptionPane.showMessageDialog(this, "Data berhasil dimuat dari CSV", "Sukses",
+                    JOptionPane.INFORMATION_MESSAGE); // Menampilkan pesan sukses
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error memuat dari CSV: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE); // Menampilkan pesan error jika gagal memuat
+        }
+    }
+    
     /**
      * @param args the command line arguments
      */
@@ -78,5 +554,22 @@ public class CekCuacaSederhanaForm extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnAddFavorite;
+    private javax.swing.JButton btnCek;
+    private javax.swing.JButton btnKeluar;
+    private javax.swing.JButton btnMuat;
+    private javax.swing.JButton btnSimpan;
+    private javax.swing.JComboBox<String> jComboBoxLokasi;
+    private javax.swing.JTextField jInputKota;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTable jTable1;
+    private javax.swing.JLabel lblIconCuaca;
+    private javax.swing.JLabel lblInfo;
+    private javax.swing.JLabel lblKelembaban;
+    private javax.swing.JLabel lblKondisiCuaca;
+    private javax.swing.JLabel lblRiwayat;
+    private javax.swing.JLabel lblSuhu;
     // End of variables declaration//GEN-END:variables
 }
