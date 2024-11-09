@@ -299,6 +299,9 @@
           </Events>
         </Component>
         <Component class="javax.swing.JTextField" name="jInputKota">
+          <Events>
+            <EventHandler event="focusGained" listener="java.awt.event.FocusListener" parameters="java.awt.event.FocusEvent" handler="jInputKotaFocusGained"/>
+          </Events>
         </Component>
         <Component class="javax.swing.JLabel" name="jLabel1">
           <Properties>

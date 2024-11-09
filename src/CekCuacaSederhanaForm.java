@@ -163,6 +163,12 @@ public class CekCuacaSederhanaForm extends javax.swing.JFrame {
             }
         });
 
+        jInputKota.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jInputKotaFocusGained(evt);
+            }
+        });
+
         jLabel1.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
         jLabel1.setText("Input Nama Kota");
 
@@ -318,6 +324,10 @@ public class CekCuacaSederhanaForm extends javax.swing.JFrame {
         }
         // Jika pengguna memilih "Tidak", tidak ada tindakan yang diambil, aplikasi tetap berjalan
     }//GEN-LAST:event_btnKeluarActionPerformed
+
+    private void jInputKotaFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jInputKotaFocusGained
+       jInputKota.setText("");
+    }//GEN-LAST:event_jInputKotaFocusGained
      
     public static class WeatherAPI {
         private static final String API_KEY = "be4bd2b5b4ef3873b3b83534eba2f7f8"; // API Key OpenWeatherMap
